@@ -8,13 +8,13 @@ const MONTH_NAMES = [
 ];
 
 const DAYS_HEADER = [
-  { name: "SUNDAY", colorClass: "day-sunday" },
-  { name: "MONDAY", colorClass: "day-weekday" },
-  { name: "TUESDAY", colorClass: "day-weekday" },
-  { name: "WEDNESDAY", colorClass: "day-weekday" },
-  { name: "THURSDAY", colorClass: "day-weekday" },
-  { name: "FRIDAY", colorClass: "day-weekday" },
-  { name: "SATURDAY", colorClass: "day-saturday" },
+  { name: "SUNDAY", shortName: "SUN", colorClass: "day-sunday" },
+  { name: "MONDAY", shortName: "MON", colorClass: "day-weekday" },
+  { name: "TUESDAY", shortName: "TUE", colorClass: "day-weekday" },
+  { name: "WEDNESDAY", shortName: "WED", colorClass: "day-weekday" },
+  { name: "THURSDAY", shortName: "THU", colorClass: "day-weekday" },
+  { name: "FRIDAY", shortName: "FRI", colorClass: "day-weekday" },
+  { name: "SATURDAY", shortName: "SAT", colorClass: "day-saturday" },
 ];
 
 export default function CalendarView({
@@ -139,7 +139,8 @@ export default function CalendarView({
               <tr>
                 {DAYS_HEADER.map((d) => (
                   <th key={d.name} className={`calendar-th ${d.colorClass}`}>
-                    {d.name}
+                    <span className="th-desktop-text">{d.name}</span>
+                    <span className="th-mobile-text">{d.shortName}</span>
                   </th>
                 ))}
               </tr>

@@ -18,56 +18,7 @@ export const EXPENSE_CATEGORIES = [
   "Others"
 ];
 
-export const INITIAL_EXPENSES = [
-  {
-    id: "EXP-101",
-    date: "2026-10-13",
-    title: "Truffle Cake from Baker's Den",
-    category: "Cake & Bakery",
-    amount: 750,
-    paidTo: "Baker's Den",
-    paymentMode: "UPI / GPay",
-    referenceBookingId: "01",
-    receiptNo: "REC-8841",
-    notes: "1.5kg Chocolate Truffle cake for Rahul Sharma booking"
-  },
-  {
-    id: "EXP-102",
-    date: "2026-10-13",
-    title: "Fresh Red Roses & Petals wholesale",
-    category: "Flowers & Bouquets",
-    amount: 450,
-    paidTo: "City Flower Market",
-    paymentMode: "Cash",
-    referenceBookingId: "02",
-    receiptNo: "REC-8842",
-    notes: "Bouquet and loose petals for couple surprise"
-  },
-  {
-    id: "EXP-103",
-    date: "2026-10-14",
-    title: "Venue Sanitization & Fog Liquid Refill",
-    category: "Cleaning & Maintenance",
-    amount: 600,
-    paidTo: "CleanPro Supplies",
-    paymentMode: "UPI / PhonePe",
-    referenceBookingId: "",
-    receiptNo: "REC-8845",
-    notes: "5L fog liquid and sanitizers"
-  },
-  {
-    id: "EXP-104",
-    date: "2026-10-14",
-    title: "Red Velvet Anniversary Cake",
-    category: "Cake & Bakery",
-    amount: 650,
-    paidTo: "Sweet Sensations",
-    paymentMode: "UPI / GPay",
-    referenceBookingId: "04",
-    receiptNo: "REC-8848",
-    notes: "Heart shape red velvet for Anand Verma"
-  }
-];
+export const INITIAL_EXPENSES = [];
 
 export default function AccountingView({
   bookings = [],
