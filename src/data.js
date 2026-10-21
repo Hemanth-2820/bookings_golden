@@ -164,7 +164,6 @@ export const EVENTS_LIST = [
 ];
 
 export const STANDARD_ADDONS = [
-  { id: "venue", name: "Venue", price: 999, fixed: true, defaultChecked: true },
   { id: "fog", name: "Fog", price: 900, fixed: true },
   { id: "bubbles", name: "Bubbles", price: 400, fixed: true },
   { id: "cake", name: "Cake", price: 0, fixed: false, note: "based on requirement" },

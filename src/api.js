@@ -1,10 +1,19 @@
 // API Service helper to communicate with PHP backend with localStorage fallback
-// In development, points to localhost:8000/api.php.
-// On cPanel/production, it automatically uses the relative '/backend/api.php' or './api.php' path.
+// Determines current environment:
+// 1. If running on localhost on port 5173 (Vite dev), connects to localhost:8000/api.php
+// 2. In cPanel or any live domain, connects to the same origin '/backend/api.php' or './backend/api.php'
 
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:8000/api.php'
-  : '/backend/api.php';
+const getApiBaseUrl = () => {
+  if (typeof window === 'undefined') return '/backend/api.php';
+  const { hostname, port, protocol } = window.location;
+  if ((hostname === 'localhost' || hostname === '127.0.0.1') && port === '5173') {
+    return 'http://localhost:8000/api.php';
+  }
+  // In live production (cPanel domain or IP)
+  return `${protocol}//${window.location.host}/backend/api.php`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchBookingsFromApi() {
   try {
@@ -50,5 +59,26 @@ export async function deleteBookingFromApi(id) {
     return json;
   } catch (err) {
     return { success: false, offline: true, error: err.message };
+  }
+}
+
+export async function verifyAdminPassword(password) {
+  try {
+    const res = await fetch(`${API_BASE_URL}?action=login`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ password })
+    });
+    const json = await res.json();
+    return json;
+  } catch (err) {
+    // If backend is completely offline or not reached, check locally against default password
+    if (password === 'bookinggolden2026') {
+      return { success: true, offline: true };
+    }
+    return { success: false, error: 'Incorrect password' };
   }
 }

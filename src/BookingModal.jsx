@@ -122,8 +122,9 @@ export default function BookingModal({
 
       const stateObj = {};
       addonsList.forEach(std => {
+        if (std.id === 'venue') return; // Venue is base rental, not an optional addon
         stateObj[std.id] = {
-          selected: std.id === 'venue',
+          selected: false,
           customPrice: std.fixed ? std.price : (std.id === 'cake' ? 1000 : (std.id === 'bouquet' ? 600 : 0)),
           quantity: 1,
           detail: ''
@@ -133,9 +134,25 @@ export default function BookingModal({
     }
   }, [isOpen, initialDate, editingBooking, eventsList, addonsList]);
 
-  // Compute live total
-  const totalAmount = Object.entries(addonsState).reduce((acc, [id, item]) => {
-    if (!item.selected) return acc;
+  // Venue is mandatory base amount (cannot be unselected):
+  // 1 hour (60 min) = ₹999 fixed
+  // 1.5 hours (90 min) = ₹999 + 50% = ₹1,499
+  // 2 hours (120 min) = ₹999 + ₹999 = ₹1,998
+  const baseVenuePrice = 999;
+  const calculatedVenuePrice = useMemo(() => {
+    if (durationMinutes === 60) {
+      return baseVenuePrice; // 999
+    } else if (durationMinutes === 90) {
+      return Math.round(baseVenuePrice * 1.5); // 1499
+    } else if (durationMinutes === 120) {
+      return baseVenuePrice * 2; // 1998
+    }
+    return Math.round((baseVenuePrice / 60) * durationMinutes);
+  }, [durationMinutes]);
+
+  // Compute live total: Mandatory Venue Base Price + Selected Add-ons
+  const addonsTotal = Object.entries(addonsState).reduce((acc, [id, item]) => {
+    if (!item.selected || id === 'venue') return acc;
     const std = addonsList.find(a => a.id === id);
     if (!std) return acc;
 
@@ -147,6 +164,8 @@ export default function BookingModal({
       return acc + (Number(item.customPrice) || 0);
     }
   }, 0);
+
+  const totalAmount = calculatedVenuePrice + addonsTotal;
 
   const handleToggleAddon = (id) => {
     setAddonsState(prev => ({
@@ -185,15 +204,24 @@ export default function BookingModal({
       return;
     }
 
-    // Prepare addons list
-    const finalAddons = [];
+    // Prepare addons list (Venue is the base rental item, followed by chosen addons)
+    const finalAddons = [
+      {
+        id: 'venue',
+        name: 'Venue Base Rental',
+        price: calculatedVenuePrice,
+        quantity: 1,
+        detail: `${durationMinutes / 60} Hour(s) Venue Rental`
+      }
+    ];
+
     Object.entries(addonsState).forEach(([id, item]) => {
-      if (item.selected) {
+      if (item.selected && id !== 'venue') {
         const std = addonsList.find(a => a.id === id);
         let calcPrice = 0;
-        if (std.isPerNumber) {
+        if (std && std.isPerNumber) {
           calcPrice = std.price * (item.quantity || 1);
-        } else if (std.fixed) {
+        } else if (std && std.fixed) {
           calcPrice = std.price;
         } else {
           calcPrice = Number(item.customPrice) || 0;
@@ -425,15 +453,29 @@ export default function BookingModal({
 
           {/* Section 3: Add-ons & Live Rates */}
           <div className="form-section">
-            <div className="addons-section-header">
-              <h3 className="section-title">3. Add-ons Package Breakdown</h3>
+            <div className="venue-base-card">
+              <div className="venue-base-left">
+                <span className="venue-base-title">Venue Base Rental (Mandatory)</span>
+                <span className="venue-base-desc">
+                  {durationMinutes === 60 && "1 Hour Booking @ ₹999/- fixed"}
+                  {durationMinutes === 90 && "1.5 Hours Booking @ ₹999 + 50% = ₹1,499/-"}
+                  {durationMinutes === 120 && "2 Hours Booking @ ₹999 + ₹999 = ₹1,998/-"}
+                </span>
+              </div>
+              <div className="venue-base-price">
+                <span>₹{calculatedVenuePrice.toLocaleString('en-IN')}/-</span>
+              </div>
+            </div>
+
+            <div className="addons-section-header mt-3">
+              <h3 className="section-title">Additional Add-on Items</h3>
               <span className="addon-counter-badge">
-                Selected: {Object.values(addonsState).filter(a => a.selected).length}
+                Selected: {Object.entries(addonsState).filter(([id, a]) => a.selected && id !== 'venue').length}
               </span>
             </div>
 
             <div className="addons-grid">
-              {addonsList.map((addon) => {
+              {addonsList.filter(addon => addon.id !== 'venue').map((addon) => {
                 const state = addonsState[addon.id] || { selected: false, customPrice: 0, quantity: 1, detail: '' };
 
                 return (
@@ -460,18 +502,60 @@ export default function BookingModal({
                     {/* Sub-inputs if selected */}
                     {state.selected && (
                       <div className="addon-expand-fields">
-                        {/* Per number multiplier */}
+                        {/* Per number multiplier with easy tap +/- buttons and manual input */}
                         {addon.isPerNumber && (
                           <div className="addon-inline-field">
                             <label>Count of Numbers:</label>
-                            <input 
-                              type="number" 
-                              min="1" 
-                              max="10" 
-                              value={state.quantity || 1}
-                              onChange={(e) => handleUpdateAddon(addon.id, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
-                            />
-                            <span className="addon-subtotal-tag">₹{(state.quantity || 1) * addon.price}/-</span>
+                            <div className="stepper-wrap">
+                              <button
+                                type="button"
+                                className="btn-stepper minus"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const cur = Number(state.quantity) || 1;
+                                  if (cur > 1) handleUpdateAddon(addon.id, 'quantity', cur - 1);
+                                }}
+                              >
+                                -
+                              </button>
+                              <input 
+                                type="number" 
+                                min="1" 
+                                max="20"
+                                className="stepper-input"
+                                value={state.quantity === undefined ? 1 : state.quantity}
+                                onClick={(e) => e.stopPropagation()}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  if (raw === '') {
+                                    handleUpdateAddon(addon.id, 'quantity', '');
+                                  } else {
+                                    const parsed = parseInt(raw, 10);
+                                    handleUpdateAddon(addon.id, 'quantity', isNaN(parsed) ? 1 : parsed);
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  if (!state.quantity || Number(state.quantity) < 1) {
+                                    handleUpdateAddon(addon.id, 'quantity', 1);
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="btn-stepper plus"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const cur = Number(state.quantity) || 1;
+                                  handleUpdateAddon(addon.id, 'quantity', cur + 1);
+                                }}
+                              >
+                                +
+                              </button>
+                            </div>
+                            <span className="addon-subtotal-tag">
+                              ₹{((Number(state.quantity) || 1) * addon.price).toLocaleString('en-IN')}/-
+                            </span>
                           </div>
                         )}
 

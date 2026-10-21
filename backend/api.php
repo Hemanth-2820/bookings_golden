@@ -12,7 +12,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/config.php';
 
+// Auto-create admin_settings table if not exists and seed default password
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `admin_settings` (
+      `setting_key` VARCHAR(50) NOT NULL PRIMARY KEY,
+      `setting_val` VARCHAR(255) NOT NULL,
+      `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+    $pdo->exec("INSERT INTO `admin_settings` (`setting_key`, `setting_val`) 
+      VALUES ('admin_password', 'bookinggolden2026') 
+      ON DUPLICATE KEY UPDATE `setting_val` = IF(`setting_val`='', 'bookinggolden2026', `setting_val`);");
+} catch (Exception $e) {}
+
 $method = $_SERVER['REQUEST_METHOD'];
+$action = isset($_GET['action']) ? trim($_GET['action']) : '';
+
+if ($action === 'login') {
+    handleLogin($pdo);
+    exit;
+}
 
 switch ($method) {
     case 'GET':
@@ -28,6 +47,43 @@ switch ($method) {
         http_response_code(405);
         echo json_encode(['success' => false, 'error' => 'Method Not Allowed']);
         break;
+}
+
+/**
+ * Handle Admin Login Verification
+ */
+function handleLogin($pdo) {
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    $enteredPassword = trim($data['password'] ?? '');
+
+    try {
+        $stmt = $pdo->prepare("SELECT setting_val FROM admin_settings WHERE setting_key = 'admin_password' LIMIT 1");
+        $stmt->execute();
+        $row = $stmt->fetch();
+        $storedPassword = $row ? $row['setting_val'] : 'bookinggolden2026';
+
+        if ($enteredPassword === $storedPassword) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Admin authenticated successfully'
+            ]);
+        } else {
+            http_response_code(401);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Incorrect admin password. Please try again.'
+            ]);
+        }
+    } catch (Exception $e) {
+        // Fallback check if table query has issues
+        if ($enteredPassword === 'bookinggolden2026') {
+            echo json_encode(['success' => true]);
+        } else {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Incorrect password']);
+        }
+    }
 }
 
 /**

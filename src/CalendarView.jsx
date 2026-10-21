@@ -24,7 +24,8 @@ export default function CalendarView({
   onChangeMonth,
   onOpenNewBooking,
   onOpenDashboard,
-  onSelectDateBookings
+  onSelectDateBookings,
+  onLogout
 }) {
   const [selectedDayInfo, setSelectedDayInfo] = useState(null);
 
@@ -103,6 +104,15 @@ export default function CalendarView({
           >
             <span>DASHBOARD</span>
           </button>
+          {onLogout && (
+            <button 
+              className="btn-logout-toggle"
+              onClick={onLogout}
+              title="Log out of Admin Portal"
+            >
+              <span>Lock</span>
+            </button>
+          )}
         </div>
       </div>
 
